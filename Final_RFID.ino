@@ -15,15 +15,12 @@ MFRC522 rfid(SS_PIN, RST_PIN); // Instance of the class
 MFRC522::MIFARE_Key key;
 
 // Init array that will store new NUID
-byte nuidPICC[4];
-byte user_1[4];
-byte user_2[4];
+
+
 
 const char* ssid = "Ahrniloy";
 const char* password = "08444554";
 
-char* massege1 = "User_1 Identify";
-const char* massege2 = "User_2 Identify";
 
 bool ledState = 0;
 //const int ledPin = D4;
@@ -31,10 +28,6 @@ bool ledState = 0;
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
-
-
-
-
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -232,12 +225,6 @@ void initWebSocket() {
   server.addHandler(&ws);
 }
 
-
-
-
-
-
-
 void setup() {
   Serial.begin(115200);
   
@@ -274,16 +261,6 @@ void setup() {
     key.keyByte[i] = 0xFF;
   }
 
-  user_1[0] = 195;
-  user_1[1] = 194;
-  user_1[2] = 36;
-  user_1[3] = 183;
-  
-  user_2[0] = 35;
-  user_2[1] = 219;
-  user_2[2] = 165;
-  user_2[3] = 154;
-
   Serial.println();
   Serial.println(F("This code scan the MIFARE Classic NUID."));
   Serial.print(F("Using the following key:"));
@@ -297,17 +274,10 @@ void Clients( const char* massege1 ) {
 
 }
 
-
-
-
-
 void loop() {
 
   ws.cleanupClients();
   
-  
- 
-
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   if ( ! rfid.PICC_IsNewCardPresent())
     return;
@@ -328,68 +298,17 @@ void loop() {
     return;
   }
 
-  if (rfid.uid.uidByte[0] == user_1[0] &&
-      rfid.uid.uidByte[1] == user_1[1] &&
-      rfid.uid.uidByte[2] == user_1[2] &&
-      rfid.uid.uidByte[3] == user_1[3] ) {
-    Serial.println(F("User_1 has been detected."));
-  Clients("User_1 has been detected.");
 
-
-  //A new card has been detected.
-    card_detected();
-
-    // Store NUID into nuidPICC array
-    for (byte i = 0; i < 4; i++) {
-      nuidPICC[i] = rfid.uid.uidByte[i];
-    }
-  }
-
-  if (rfid.uid.uidByte[0] == user_2[0] &&
-      rfid.uid.uidByte[1] == user_2[1] &&
-      rfid.uid.uidByte[2] == user_2[2] &&
-      rfid.uid.uidByte[3] == user_2[3] ) {
-    Serial.println(F("User_2 has been detected."));
+  else {
   
-  Clients("User_2 has been detected.");
-
-
-  //A new card has been detected.
-    card_detected();
-
-    // Store NUID into nuidPICC array
-    for (byte i = 0; i < 4; i++) {
-      nuidPICC[i] = rfid.uid.uidByte[i];
-    }
-  }
-
-  else if (rfid.uid.uidByte[0] != nuidPICC[0] ||
-      rfid.uid.uidByte[1] != nuidPICC[1] ||
-      rfid.uid.uidByte[2] != nuidPICC[2] ||
-      rfid.uid.uidByte[3] != nuidPICC[3] ) {
-    Serial.println(F("A new card has been detected."));  //A new card has been detected.
-    card_detected();
-
-    // Store NUID into nuidPICC array
-    for (byte i = 0; i < 4; i++) {
-      nuidPICC[i] = rfid.uid.uidByte[i];
-    }
-
     Serial.println(F("The NUID tag is:"));
-    Serial.print(F("In hex: "));
-    printHex(rfid.uid.uidByte, rfid.uid.size);
-    
-    Serial.println();
-    Serial.print(F("In dec: "));
-    printDec(rfid.uid.uidByte, rfid.uid.size);
-    Serial.println();
 
     Serial.print(F("In Byte: "));
     printByte(rfid.uid.uidByte, rfid.uid.size);
+    
     Serial.println();
     
   }
-  else Serial.println(F("Card read previously."));
 
   // Halt PICC
   rfid.PICC_HaltA();
@@ -409,23 +328,19 @@ void printHex(byte *buffer, byte bufferSize) {
   }
 }
 
-
-
-/**
-   Helper routine to dump a byte array as dec values to Serial.
-*/
-void printDec(byte *buffer, byte bufferSize) {
+String convertToString(byte *buffer, byte bufferSize) {
+  String str;
   for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer[i], DEC);
+    str += String(buffer[i]);
   }
+  return str;
 }
 
 void printByte(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i]);
-    
-  }
+  String str = convertToString(buffer, bufferSize);
+  const char* charPtr = str.c_str();
+  notifyClients(charPtr);
+  Serial.println(str);
 }
 
 
